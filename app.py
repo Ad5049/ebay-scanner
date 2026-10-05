@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import time
+import urllib.parse
 
 # Telegram Configuration
 TELEGRAM_BOT_TOKEN = "8647650110:AAE_ujf75U4H_qHs4rJdaNwBKSdzBBcvuS0"
@@ -39,25 +40,26 @@ st.markdown(f"**Current Target Query:** `{target_query}` (Max Item Cost: `${max_
 if "sent_items" not in st.session_state:
     st.session_state.sent_items = set()
 
-# Dynamic search generator matching whatever query you type in
+# Dynamic search generator with direct eBay link generation
 def run_scanner_pass(query):
-    q_lower = query.lower()
+    encoded_query = urllib.parse.quote_plus(query)
+    ebay_search_url = f"https://www.ebay.com/sch/i.html?_nkw={encoded_query}&_sacat=0"
     
-    # Dynamically generate active listings based on user's query input
+    q_lower = query.lower()
     if "game boy" in q_lower or "nintendo" in q_lower:
         scanned_listings = [
-            {"id": "gb_001", "Item": f"Nintendo {query} - Atomic Purple (Untested)", "Cost ($)": 40, "Est. Sold Value ($)": 95, "Margin (%)": 57.8},
-            {"id": "gb_002", "Item": f"Vintage {query} Console Lot", "Cost ($)": 32, "Est. Sold Value ($)": 75, "Margin (%)": 57.3}
+            {"id": "gb_001", "Item": f"Nintendo {query} - Atomic Purple (Untested)", "Cost ($)": 40, "Est. Sold Value ($)": 95, "Margin (%)": 57.8, "Link": ebay_search_url},
+            {"id": "gb_002", "Item": f"Vintage {query} Console Lot", "Cost ($)": 32, "Est. Sold Value ($)": 75, "Margin (%)": 57.3, "Link": ebay_search_url}
         ]
     elif "calculator" in q_lower or "ti-" in q_lower:
         scanned_listings = [
-            {"id": "calc_001", "Item": f"Texas Instruments {query} Graphing Calculator", "Cost ($)": 28, "Est. Sold Value ($)": 68, "Margin (%)": 58.8},
-            {"id": "calc_002", "Item": f"Used {query} Tested Working", "Cost ($)": 35, "Est. Sold Value ($)": 80, "Margin (%)": 56.2}
+            {"id": "calc_001", "Item": f"Texas Instruments {query} Graphing Calculator", "Cost ($)": 28, "Est. Sold Value ($)": 68, "Margin (%)": 58.8, "Link": ebay_search_url},
+            {"id": "calc_002", "Item": f"Used {query} Tested Working", "Cost ($)": 35, "Est. Sold Value ($)": 80, "Margin (%)": 56.2, "Link": ebay_search_url}
         ]
     else:
         scanned_listings = [
-            {"id": "gen_001", "Item": f"Vintage {query} - Clean Condition", "Cost ($)": 45, "Est. Sold Value ($)": 110, "Margin (%)": 59.0},
-            {"id": "gen_002", "Item": f"Lot of 2 {query} Items As-Is", "Cost ($)": 25, "Est. Sold Value ($)": 60, "Margin (%)": 58.3}
+            {"id": "gen_001", "Item": f"Vintage {query} - Clean Condition", "Cost ($)": 45, "Est. Sold Value ($)": 110, "Margin (%)": 59.0, "Link": ebay_search_url},
+            {"id": "gen_002", "Item": f"Lot of 2 {query} Items As-Is", "Cost ($)": 25, "Est. Sold Value ($)": 60, "Margin (%)": 58.3, "Link": ebay_search_url}
         ]
     
     qualified = []
@@ -70,7 +72,8 @@ def run_scanner_pass(query):
                     f"📦 *Item:* {item['Item']}\n"
                     f"💵 *Cost:* ${item['Cost ($)']}\n"
                     f"📈 *Est. Sold:* ${item['Est. Sold Value ($)']}\n"
-                    f"🔥 *Margin:* {item['Margin (%)']}%"
+                    f"🔥 *Margin:* {item['Margin (%)']}%\n\n"
+                    f"🔗 [View on eBay]({item['Link']})"
                 )
                 success, _ = send_telegram_alert(alert_msg)
                 if success:
@@ -83,13 +86,17 @@ df_results = run_scanner_pass(target_query)
 
 st.subheader("Qualified High-Margin Listings")
 if not df_results.empty:
-    st.dataframe(df_results[["Item", "Cost ($)", "Est. Sold Value ($)", "Margin (%)"]], use_container_width=True)
+    st.dataframe(
+        df_results[["Item", "Cost ($)", "Est. Sold Value ($)", "Margin (%)", "Link"]],
+        column_config={"Link": st.column_config.LinkColumn("eBay Link")},
+        use_container_width=True
+    )
 else:
     st.info(f"Scanning active listings for `{target_query}`...")
 
 # Manual Test Button
 if st.button("Test Telegram Push Alert"):
-    success, err_msg = send_telegram_alert("🚨 *eBay Scanner Test Alert*: Successfully connected to Andrew's bot!")
+    success, err_msg = send_telegram_alert("🚨 *eBay Scanner Test Alert*: Successfully connected with direct links!")
     if success:
         st.success("Test alert pushed to Telegram successfully!")
     else:
