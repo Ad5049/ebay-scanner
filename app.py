@@ -2,120 +2,88 @@ import streamlit as st
 import requests
 import pandas as pd
 import time
-from datetime import datetime
 
-# Telegram Configuration
-TELEGRAM_BOT_TOKEN = "8647650110:AAE_ujf75U4H_qHs4rJdaNwBKSdzBBcvuS0"
-TELEGRAM_CHAT_ID = "8179645246"
+# Discord Webhook URL (Shared across your alert streams)
+DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1556663289465938010/vb-kGgqjeCwRY3e0LXrL4Dr0IKH7BYLLnfZwUjGoap3E7aPDyYjO1sF3csPFwcJgniTi"
 
-def send_telegram_alert(message):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": TELEGRAM_CHAT_ID,
-        "text": message,
-        "parse_mode": "Markdown"
-    }
+def send_discord_alert(message):
+    payload = {"content": message}
     try:
-        response = requests.post(url, json=payload, timeout=10)
-        return response.status_code == 200, response.text
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload, timeout=10)
+        return response.status_code in [200, 204], response.text
     except Exception as e:
         return False, str(e)
 
-st.title("Kalshi Universal Market Cross-Reference Scanner")
-st.markdown("Scanning the complete Kalshi prediction market catalog, cross-referencing consensus metrics, and pushing live Telegram alerts.")
+st.title("eBay Arbitrage Scanner")
+st.markdown("Scanning high-margin listings under $100 with a minimum 50% profit margin and pushing live alerts to Discord.")
 
 # Sidebar controls
 st.sidebar.header("Scanner Settings")
-min_edge = st.sidebar.slider("Minimum Discrepancy Edge (%)", min_value=2.0, max_value=20.0, value=5.0)
+max_price = st.sidebar.number_input("Max Listing Price ($)", value=100.0)
+min_margin = st.sidebar.slider("Minimum Profit Margin (%)", min_value=10.0, max_value=200.0, value=50.0)
 scan_interval = st.sidebar.number_input("Scan Interval (seconds)", value=300, min_value=60)
 
-# Initialize session state for duplicate filtering and scan timestamps
-if "sent_kalshi_items" not in st.session_state:
-    st.session_state.sent_kalshi_items = set()
+# Initialize session state for tracking sent items and timestamps
+if "sent_ebay_items" not in st.session_state:
+    st.session_state.sent_ebay_items = set()
 if "last_scan_time" not in st.session_state:
     st.session_state.last_scan_time = 0
 
-def run_kalshi_scanner():
-    url = "https://external-api.kalshi.com/trade-api/v2/markets?status=open&limit=100"
+def run_ebay_scanner():
+    # Placeholder simulation for eBay API / scraping logic matching your parameters
     qualified = []
     
-    try:
-        response = requests.get(url, timeout=10)
-        if response.status_code == 200:
-            data = response.json()
-            markets = data.get("markets", [])
-            
-            for m in markets:
-                ticker = m.get("ticker")
-                title = m.get("title", "Unknown Contract")
-                category = m.get("category", "General")
-                yes_bid = m.get("yes_bid", 0)
-                yes_ask = m.get("yes_ask", 0)
-                
-                if yes_bid > 0 and yes_ask > 0:
-                    implied_prob = (yes_bid + yes_ask) / 2.0
-                else:
-                    implied_prob = yes_ask if yes_ask > 0 else 50.0
-                
-                # Cross-reference benchmark model
-                external_consensus_prob = implied_prob + (3.0 if implied_prob < 50 else -3.0) 
-                discrepancy_edge = abs(implied_prob - external_consensus_prob)
-                
-                if discrepancy_edge >= min_edge:
-                    kalshi_link = f"https://kalshi.com/markets/{ticker.lower()}"
-                    item_data = {
-                        "Ticker": ticker,
-                        "Title": title,
-                        "Category": category,
-                        "Kalshi Implied (%)": round(implied_prob, 1),
-                        "Benchmark (%)": round(external_consensus_prob, 1),
-                        "Edge (%)": round(discrepancy_edge, 1),
-                        "Link": kalshi_link
-                    }
-                    qualified.append(item_data)
-                    
-                    if ticker not in st.session_state.sent_kalshi_items:
-                        alert_msg = (
-                            f"🚨 *Kalshi Market Discrepancy Found!*\n\n"
-                            f"📊 *Contract:* {title}\n"
-                            f"🏷 *Category:* {category}\n"
-                            f"📉 *Kalshi Implied:* {item_data['Kalshi Implied (%)']}%\n"
-                            f"📈 *Benchmark:* {item_data['Benchmark (%)']}%\n"
-                            f"🔥 *Edge:* +{item_data['Edge (%)']}%\n\n"
-                            f"🔗 [View on Kalshi]({kalshi_link})"
-                        )
-                        success, _ = send_telegram_alert(alert_msg)
-                        if success:
-                            st.session_state.sent_kalshi_items.add(ticker)
-        else:
-            st.warning(f"Kalshi API status code: {response.status_code}")
-    except Exception as e:
-        st.error(f"API connection error: {str(e)}")
+    # Example structured result item for illustration/placeholder integration
+    # (Integrate your specific eBay search / Browse API query here)
+    sample_item = {
+        "Title": "Sample Arbitrage Item",
+        "Price": 45.00,
+        "Estimated Value": 120.00,
+        "Margin (%)": 166.7,
+        "Link": "https://www.ebay.com"
+    }
+    
+    if sample_item["Margin (%)"] >= min_margin and sample_item["Price"] <= max_price:
+        qualified.append(sample_item)
+        item_id = sample_item["Title"]
         
+        if item_id not in st.session_state.sent_ebay_items:
+            alert_msg = (
+                f"🛒 **High-Margin eBay Deal Found!**\n"
+                f"📦 **Item:** {sample_item['Title']}\n"
+                f"💵 **Price:** ${sample_item['Price']:.2f}\n"
+                f"📈 **Estimated Value:** ${sample_item['Estimated Value']:.2f}\n"
+                f"🔥 **Profit Margin:** +{sample_item['Margin (%)']:.1f}%\n"
+                f"🔗 {sample_item['Link']}"
+            )
+            success, _ = send_discord_alert(alert_msg)
+            if success:
+                st.session_state.sent_ebay_items.add(item_id)
+                
     return pd.DataFrame(qualified)
 
-# Rate-limited execution block to prevent Streamlit throttling
+# Rate-limited automatic execution block
 current_time = time.time()
 if current_time - st.session_state.last_scan_time > scan_interval:
     st.session_state.last_scan_time = current_time
     st.rerun()
 
-df_results = run_kalshi_scanner()
+df_results = run_ebay_scanner()
 
-st.subheader("Live Flagged Kalshi Opportunities")
+st.subheader("Live Flagged eBay Opportunities")
 if not df_results.empty:
     st.dataframe(
-        df_results[["Title", "Category", "Kalshi Implied (%)", "Benchmark (%)", "Edge (%)", "Link"]],
-        column_config={"Link": st.column_config.LinkColumn("Kalshi Link")},
+        df_results[["Title", "Price", "Estimated Value", "Margin (%)", "Link"]],
+        column_config={"Link": st.column_config.LinkColumn("eBay Link")},
         use_container_width=True
     )
 else:
-    st.info("Scanning entire open Kalshi catalog for structural discrepancies...")
+    st.info("Scanning eBay listings for high-margin arbitrage opportunities...")
 
-if st.button("Test Telegram Push Alert"):
-    success, err_msg = send_telegram_alert("🚨 *Kalshi Scanner Test Alert*: Successfully connected!")
+if st.button("Test eBay Discord Alert"):
+    success, api_response = send_discord_alert("🛒 **eBay Scanner Test Alert**: Successfully connected to Discord!")
     if success:
-        st.success("Test alert pushed to Telegram successfully!")
+        st.success("Test alert pushed successfully to Discord!")
     else:
-        st.error(f"Telegram Error Details: {err_msg}")
+        st.error(f"Webhook Error Response: {api_response}")
         
