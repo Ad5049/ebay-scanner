@@ -4,13 +4,10 @@ import pandas as pd
 import time
 
 # Telegram Configuration
-TELEGRAM_BOT_TOKEN = "YOUR_BOTFATHER_TOKEN_HERE"  # Replace with your actual BotFather token
+TELEGRAM_BOT_TOKEN = "8082987823:AAFSf_5mDnsb5T1cE5_i90B1tO0-yI-Q8l4"
 TELEGRAM_CHAT_ID = "8179645246"
 
 def send_telegram_alert(message):
-    if TELEGRAM_BOT_TOKEN == "YOUR_BOTFATHER_TOKEN_HERE":
-        return False
-    
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
@@ -41,7 +38,6 @@ if "sent_items" not in st.session_state:
 
 # Simulated live scan function (Replace this with real eBay Browse API calls later)
 def run_scanner_pass():
-    # Example incoming listings detected during a scan pass
     scanned_listings = [
         {"id": "item_001", "Item": "Nintendo Game Boy Color - Atomic Purple (Untested)", "Cost ($)": 40, "Est. Sold Value ($)": 95, "Margin (%)": 57.8},
         {"id": "item_002", "Item": "Vintage Texas Instruments TI-84 Plus Graphing Calculator", "Cost ($)": 32, "Est. Sold Value ($)": 75, "Margin (%)": 57.3}
@@ -51,7 +47,6 @@ def run_scanner_pass():
     for item in scanned_listings:
         if item["Cost ($)"] <= max_cost and item["Margin (%)"] >= 50.0:
             qualified.append(item)
-            # Check if we already alerted on this specific item ID this session
             if item["id"] not in st.session_state.sent_items:
                 alert_msg = (
                     f"🚨 *New High-Margin Listing Found!*\n\n"
@@ -80,7 +75,7 @@ if st.button("Test Telegram Push Alert"):
     if send_telegram_alert("🚨 *eBay Scanner Test Alert*: Successfully connected to Andrew's bot!"):
         st.success("Test alert pushed to Telegram successfully!")
     else:
-        st.error("Failed to push alert. Check your BotFather API token.")
+        st.error("Failed to push alert. Check your Telegram network settings.")
 
 # Continuous auto-scan loop trigger
 if auto_scan:
