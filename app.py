@@ -4,7 +4,7 @@ import pandas as pd
 import time
 
 # Telegram Configuration
-TELEGRAM_BOT_TOKEN = "8082987823:AAFSf_5mDnsb5T1cE5_i90B1tO0-yI-Q8l4"
+TELEGRAM_BOT_TOKEN = "8647650110:AAE_ujf75U4H_qHs4rJdaNwBKSdzBBcvuS0"
 TELEGRAM_CHAT_ID = "8179645246"
 
 def send_telegram_alert(message):
