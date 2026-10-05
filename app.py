@@ -15,10 +15,13 @@ def send_telegram_alert(message):
         "parse_mode": "Markdown"
     }
     try:
-        response = requests.post(url, json=payload, timeout=5)
-        return response.status_code == 200
-    except Exception:
-        return False
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code == 200:
+            return True, "Success"
+        else:
+            return False, f"HTTP {response.status_code}: {response.text}"
+    except Exception as e:
+        return False, str(e)
 
 st.title("eBay High-Margin Arbitrage Scanner")
 st.markdown("Scans active listings under target costs, compares against median verified sold values, and instantly pushes alerts for `>=50%` profit margins.")
@@ -36,7 +39,7 @@ st.markdown(f"**Current Target Query:** `{target_query}` (Max Item Cost: `${max_
 if "sent_items" not in st.session_state:
     st.session_state.sent_items = set()
 
-# Simulated live scan function (Replace this with real eBay Browse API calls later)
+# Simulated live scan function
 def run_scanner_pass():
     scanned_listings = [
         {"id": "item_001", "Item": "Nintendo Game Boy Color - Atomic Purple (Untested)", "Cost ($)": 40, "Est. Sold Value ($)": 95, "Margin (%)": 57.8},
@@ -55,7 +58,7 @@ def run_scanner_pass():
                     f"📈 *Est. Sold:* ${item['Est. Sold Value ($)']}\n"
                     f"🔥 *Margin:* {item['Margin (%)']}%"
                 )
-                success = send_telegram_alert(alert_msg)
+                success, _ = send_telegram_alert(alert_msg)
                 if success:
                     st.session_state.sent_items.add(item["id"])
                     
@@ -70,12 +73,13 @@ if not df_results.empty:
 else:
     st.info("Scanning for listings matching criteria...")
 
-# Manual Test Button
+# Manual Test Button with Detailed Error Output
 if st.button("Test Telegram Push Alert"):
-    if send_telegram_alert("🚨 *eBay Scanner Test Alert*: Successfully connected to Andrew's bot!"):
+    success, err_msg = send_telegram_alert("🚨 *eBay Scanner Test Alert*: Successfully connected to Andrew's bot!")
+    if success:
         st.success("Test alert pushed to Telegram successfully!")
     else:
-        st.error("Failed to push alert. Check your Telegram network settings.")
+        st.error(f"Telegram Error Details: {err_msg}")
 
 # Continuous auto-scan loop trigger
 if auto_scan:
